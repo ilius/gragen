@@ -1,0 +1,3 @@
+gragen
+proto_registry/*.pb.go
+examples/*/*.pb.go
