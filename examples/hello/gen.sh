@@ -2,16 +2,16 @@
 
 GRAGEN="github.com/ilius/gragen"
 
+rm hello.pb.go
+
 protoc -I. \
 	"-I${GOPATH}/src" \
-	--go_out=. \
+	--go_out=plugins=grpc:. \
 	hello.proto \
 	|| exit $?
 
-
-cp hello.pb.go "$GOPATH/src/$GRAGEN/proto_registry/" || exit $?
-
 go build "$GRAGEN" || exit $?
 
-./gragen hello.proto > hello_adaptor.go || exit $?
-go fmt hello_adaptor.go || exit $?
+./gragen hello.pb.go
+
+# ./gragen hello.pb.go > hello_adaptor.go || exit $?

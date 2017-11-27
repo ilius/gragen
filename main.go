@@ -1,15 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
 func main() {
 	if len(os.Args) > 1 {
-		protoPath := os.Args[1]
-		err := parseProtoFile(protoPath)
+		pbGoPath := os.Args[1]
+		service, err := parsePbGoFile(pbGoPath)
 		if err != nil {
 			panic(err)
 		}
+		code, err := generateServiceCode(service)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(code)
 	}
 }
