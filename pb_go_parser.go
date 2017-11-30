@@ -10,7 +10,8 @@ import (
 	"strings"
 )
 
-func findServerInterface(f *ast.File) (string, *ast.Object) {
+// returns (clientName, serverName, serverObj)
+func findClientServerInterfaces(f *ast.File) (string, string, *ast.Object) {
 	registerFuncName := ""
 	for objName, _ := range f.Scope.Objects {
 		if strings.HasPrefix(objName, "Register") && strings.HasSuffix(objName, "Server") {
@@ -19,11 +20,18 @@ func findServerInterface(f *ast.File) (string, *ast.Object) {
 		}
 	}
 	if registerFuncName == "" {
-		return "", nil
+		return "", "", nil
 	}
 	serverName := registerFuncName[len("Register"):]
 	serverObj := f.Scope.Objects[serverName]
-	return serverName, serverObj
+	baseName := serverName[:len(serverName)-len("Server")]
+	clientName := baseName + "Client"
+	_, ok := f.Scope.Objects[clientName]
+	if !ok {
+		panic(fmt.Sprintf("did not find client interface: %v", clientName))
+	}
+
+	return clientName, serverName, serverObj
 }
 
 func formatTypeExpr(expr interface{}) string {
@@ -100,7 +108,7 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, serverObj := findServerInterface(f)
+	clientName, serverName, serverObj := findClientServerInterfaces(f)
 	if serverObj == nil {
 		return nil, fmt.Errorf("could not find Server interface")
 	}
@@ -109,8 +117,10 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 		return nil, err
 	}
 	service := &Service{
-		Name:    pkgName,
-		Methods: methods,
+		Name:       pkgName,
+		ClientName: clientName,
+		ServerName: serverName,
+		Methods:    methods,
 	}
 
 	return service, nil

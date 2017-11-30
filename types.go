@@ -5,8 +5,10 @@ import (
 )
 
 type Service struct {
-	Name    string // starts with lowercase
-	Methods []*Method
+	Name       string // starts with lowercase
+	ServerName string // name of grpc server interface
+	ClientName string // name of grpc client interface
+	Methods    []*Method
 }
 
 type Param struct {
