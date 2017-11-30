@@ -46,6 +46,30 @@ func formatTypeExpr(expr interface{}) string {
 	return ""
 }
 
+func getJsonKeyFromTag(tag string) string {
+	parts := strings.Split(tag, `json:"`)
+	if len(parts) != 2 {
+		return ""
+	}
+	parts = strings.Split(parts[1], `"`)
+	if len(parts) < 1 {
+		return ""
+	}
+	jsonTag := parts[0]
+	if jsonTag == "" {
+		return ""
+	}
+	parts = strings.Split(jsonTag, ",")
+	if len(parts) < 1 {
+		return ""
+	}
+	jsonKey := parts[0]
+	if jsonKey == "-" {
+		return ""
+	}
+	return jsonKey
+}
+
 func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, error) {
 	methods := []*Method{}
 	typeSpec := serverObj.Decl.(*ast.TypeSpec)
@@ -74,9 +98,13 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 			if Type == "" {
 				return nil, fmt.Errorf("could not detect type name from %v with type %T", field.Type, field.Type)
 			}
+			jsonKey := getJsonKeyFromTag(field.Tag.Value)
+			if jsonKey == "" {
+				return nil, fmt.Errorf("invalid or unexpected struct tag %#v", field.Tag.Value)
+			}
 			requestParams = append(requestParams, Param{
 				Name:    field.Names[0].Name,
-				JsonKey: field.Names[0].Name, // FIXME
+				JsonKey: jsonKey,
 				Type:    Type,
 			})
 		}

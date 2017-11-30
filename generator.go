@@ -188,7 +188,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 			log.Printf("unrecognized type %v for param %#v", typ, param.Name)
 			continue
 		}
-		callCode = fmt.Sprintf(callCode, param.Name)
+		callCode = fmt.Sprintf(callCode, param.JsonKey)
 
 		// TODO: fix varName to make sure it's a valid var name
 		code += "\t\t{\n"
