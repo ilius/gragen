@@ -42,4 +42,3 @@ func (c *helloClientByServerImp) SayHello(ctx context.Context, in *HelloRequest,
 func NewHelloClientFromServer(srv HelloServer) HelloClient {
 	return &helloClientByServerImp{srv: srv}
 }
-

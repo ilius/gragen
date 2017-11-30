@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -16,6 +17,10 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(code)
+		outFilePath := filepath.Join(service.DirPath, service.Name+"_adaptor.go")
+		err = ioutil.WriteFile(outFilePath, []byte(code), 0644)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

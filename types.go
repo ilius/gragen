@@ -9,6 +9,7 @@ type Service struct {
 	ServerName string // name of grpc server interface
 	ClientName string // name of grpc client interface
 	Methods    []*Method
+	DirPath    string
 }
 
 type Param struct {

@@ -92,7 +92,7 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 }
 
 func parsePbGoFile(pbGoPath string) (*Service, error) {
-	_, filename := filepath.Split(pbGoPath)
+	dirPath, filename := filepath.Split(pbGoPath)
 	if !strings.HasSuffix(filename, ".pb.go") {
 		return nil, fmt.Errorf("filename must end with .pb.go")
 	}
@@ -121,6 +121,7 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 		ClientName: clientName,
 		ServerName: serverName,
 		Methods:    methods,
+		DirPath:    dirPath,
 	}
 
 	return service, nil

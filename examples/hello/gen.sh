@@ -13,5 +13,5 @@ protoc -I. \
 go build "$GRAGEN" || exit $?
 
 
-./gragen hello.pb.go > hello_adaptor.go || exit $?
+./gragen hello.pb.go || exit $?
 go build
