@@ -18,6 +18,19 @@ const (
 	t_stringSlice = "[]string"
 )
 
+var code_GontextFromRest = `func GontextFromRest(req ripo.Request) (context.Context, error) {
+	headerMap := map[string]string{}
+	for _, key := range req.HeaderKeys() {
+		value := req.GetHeader(key)
+		headerMap[key] = value
+	}
+	md := metadata.New(headerMap)
+	ctx := context.Background()
+	ctx = metadata.NewIncomingContext(ctx, md)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	return ctx, nil
+}`
+
 func generateServiceMethodsCode(service *Service) (string, error) {
 	code := ""
 	for _, method := range service.Methods {
@@ -94,6 +107,7 @@ func generateServiceCode(service *Service) (string, error) {
 		"net/http",
 		"golang.org/x/net/context",
 		"google.golang.org/grpc",
+		"google.golang.org/grpc/metadata",
 		"github.com/ilius/ripo",
 	}
 
@@ -106,7 +120,9 @@ func generateServiceCode(service *Service) (string, error) {
 	for _, imp := range imports {
 		code += "\t" + `"` + imp + `"` + "\n"
 	}
-	code += ")"
+	code += ")\n\n"
+
+	code += code_GontextFromRest + "\n\n"
 
 	code += methodsCode
 
@@ -202,7 +218,9 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	}
 	code += "\tlog.Println(\"grpcReq =\", grpcReq)" + "\n"
 
-	code += fmt.Sprintf("\tgrpcRes, err := client.%v(context.Background(), grpcReq)\n", method.Name)
+	code += "\t\tctx, err := GontextFromRest(req)\n"
+	code += "\t\tif err != nil { return nil, err }\n"
+	code += fmt.Sprintf("\t\tgrpcRes, err := client.%v(ctx, grpcReq)\n", method.Name)
 	code += "\t\tif err != nil { return nil, err }\n"
 	code += "\t\treturn &ripo.Response{Data: grpcRes}, nil\n"
 	code += "\t}"

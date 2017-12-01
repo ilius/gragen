@@ -4,22 +4,40 @@ import (
 	"github.com/ilius/ripo"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"log"
 	"net/http"
 )
+
+func GontextFromRest(req ripo.Request) (context.Context, error) {
+	headerMap := map[string]string{}
+	for _, key := range req.HeaderKeys() {
+		value := req.GetHeader(key)
+		headerMap[key] = value
+	}
+	md := metadata.New(headerMap)
+	ctx := context.Background()
+	ctx = metadata.NewIncomingContext(ctx, md)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	return ctx, nil
+}
 
 func NewRestHandler_SayHello(client HelloClient) ripo.Handler {
 	return func(req ripo.Request) (*ripo.Response, error) {
 		grpcReq := &HelloRequest{}
 		{
-			value, err := req.GetString("Message")
+			value, err := req.GetString("message")
 			if err != nil {
 				return nil, err
 			}
 			grpcReq.Message = *value
 		}
 		log.Println("grpcReq =", grpcReq)
-		grpcRes, err := client.SayHello(context.Background(), grpcReq)
+		ctx, err := GontextFromRest(req)
+		if err != nil {
+			return nil, err
+		}
+		grpcRes, err := client.SayHello(ctx, grpcReq)
 		if err != nil {
 			return nil, err
 		}
