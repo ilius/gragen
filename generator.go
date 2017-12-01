@@ -118,7 +118,7 @@ func generateServiceCode(service *Service) (string, error) {
 
 	imports := []string{
 		// "fmt",
-		"log",
+		// "log",
 		"net/http",
 		"golang.org/x/net/context",
 		"google.golang.org/grpc",
@@ -238,8 +238,6 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		code += fmt.Sprintf("\t\tgrpcReq.%v = %v\n", param.Name, valueExpr)
 		code += "\t\t}\n"
 	}
-	code += "\tlog.Println(\"grpcReq =\", grpcReq)" + "\n"
-
 	code += "\t\tctx, err := GontextFromRest(req)\n"
 	code += "\t\tif err != nil { return nil, err }\n"
 	code += fmt.Sprintf("\t\tgrpcRes, err := client.%v(ctx, grpcReq)\n", method.Name)
