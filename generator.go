@@ -31,6 +31,21 @@ var code_GontextFromRest = `func GontextFromRest(req ripo.Request) (context.Cont
 	return ctx, nil
 }`
 
+var code_handleRest = `func handleRest(router *httprouter.Router, method string, path string, handler ripo.Handler) {
+	handlerFunc := ripo.TranslateHandler(handler)
+	router.Handle(
+		method,
+		path,
+		func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+			r.ParseForm()
+			for _, p := range params {
+				r.Form.Add(p.Key, p.Value)
+			}
+			handlerFunc(w, r)
+		},
+	)
+}`
+
 func generateServiceMethodsCode(service *Service) (string, error) {
 	code := ""
 	for _, method := range service.Methods {
@@ -109,6 +124,7 @@ func generateServiceCode(service *Service) (string, error) {
 		"google.golang.org/grpc",
 		"google.golang.org/grpc/metadata",
 		"github.com/ilius/ripo",
+		"github.com/julienschmidt/httprouter",
 	}
 
 	if strings.Contains(methodsCode, "reflect.") {
@@ -124,12 +140,17 @@ func generateServiceCode(service *Service) (string, error) {
 
 	code += code_GontextFromRest + "\n\n"
 
-	code += methodsCode
+	code += code_handleRest + "\n\n"
 
-	code += fmt.Sprintf("func RegisterRestHandlers(client %v, mux *http.ServeMux) {\n", service.ClientName)
+	code += methodsCode + "\n\n"
+
+	code += fmt.Sprintf("func RegisterRestHandlers(client %v, router *httprouter.Router) {\n", service.ClientName)
 	for _, method := range service.Methods {
 		pattern := method.Name // FIXME
-		code += fmt.Sprintf("mux.HandleFunc(%#v, ripo.TranslateHandler(NewRestHandler_%v(client)))\n", pattern, method.Name)
+		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRestHandler_%v(client))`,
+			pattern,
+			method.Name,
+		) + "\n"
 	}
 	code += "}\n\n"
 

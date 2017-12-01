@@ -2,6 +2,7 @@ package hello
 
 import (
 	"github.com/ilius/ripo"
+	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -45,8 +46,23 @@ func NewRestHandler_SayHello(client HelloClient) ripo.Handler {
 	}
 }
 
-func RegisterRestHandlers(client HelloClient, mux *http.ServeMux) {
-	mux.HandleFunc("SayHello", ripo.TranslateHandler(NewRestHandler_SayHello(client)))
+func handleRest(router *httprouter.Router, method string, path string, handler ripo.Handler) {
+	handlerFunc := ripo.TranslateHandler(handler)
+	router.Handle(
+		method,
+		path,
+		func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+			r.ParseForm()
+			for _, p := range params {
+				r.Form.Add(p.Key, p.Value)
+			}
+			handlerFunc(w, r)
+		},
+	)
+}
+
+func RegisterRestHandlers(client HelloClient, router *httprouter.Router) {
+	handleRest(router, "GET", "SayHello", NewRestHandler_SayHello(client))
 }
 
 type helloClientByServerImp struct {
