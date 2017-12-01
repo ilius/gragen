@@ -126,10 +126,10 @@ func generateServiceCode(service *Service) (string, error) {
 
 	code += methodsCode
 
-	code += fmt.Sprintf("func RegisterRestHandlers(client %v) {\n", service.ClientName)
+	code += fmt.Sprintf("func RegisterRestHandlers(client %v, mux *http.ServeMux) {\n", service.ClientName)
 	for _, method := range service.Methods {
 		pattern := method.Name // FIXME
-		code += fmt.Sprintf("http.HandleFunc(%#v, ripo.TranslateHandler(NewRestHandler_%v(client)))\n", pattern, method.Name)
+		code += fmt.Sprintf("mux.HandleFunc(%#v, ripo.TranslateHandler(NewRestHandler_%v(client)))\n", pattern, method.Name)
 	}
 	code += "}\n\n"
 

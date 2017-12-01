@@ -45,8 +45,8 @@ func NewRestHandler_SayHello(client HelloClient) ripo.Handler {
 	}
 }
 
-func RegisterRestHandlers(client HelloClient) {
-	http.HandleFunc("SayHello", ripo.TranslateHandler(NewRestHandler_SayHello(client)))
+func RegisterRestHandlers(client HelloClient, mux *http.ServeMux) {
+	mux.HandleFunc("SayHello", ripo.TranslateHandler(NewRestHandler_SayHello(client)))
 }
 
 type helloClientByServerImp struct {
