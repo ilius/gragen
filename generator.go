@@ -148,7 +148,7 @@ func generateServiceCode(service *Service) (string, error) {
 	for _, method := range service.Methods {
 		pattern := method.Name // FIXME
 		pattern = strings.ToLower(pattern)
-		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRestHandler_%v(client))`,
+		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRest_%v(client))`,
 			pattern,
 			method.Name,
 		) + "\n"
@@ -176,7 +176,7 @@ func generateServiceCode(service *Service) (string, error) {
 
 func generateMethodCode(service *Service, method *Method) (string, error) {
 	headerCode := fmt.Sprintf(
-		"func NewRestHandler_%v(client %v) ripo.Handler {\n",
+		"func NewRest_%v(client %v) ripo.Handler {\n",
 		method.Name,
 		service.ClientName,
 	)
