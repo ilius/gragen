@@ -115,7 +115,7 @@ func generateServiceCode(service *Service) (string, error) {
 		imports = append(imports, "reflect")
 	}
 
-	code := "package " + service.Name + "\n"
+	code := "package " + service.Name + "\n\n"
 	code += "import (\n"
 	for _, imp := range imports {
 		code += "\t" + `"` + imp + `"` + "\n"
