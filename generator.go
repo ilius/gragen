@@ -147,6 +147,7 @@ func generateServiceCode(service *Service) (string, error) {
 	code += fmt.Sprintf("func RegisterRestHandlers(client %v, router *httprouter.Router) {\n", service.ClientName)
 	for _, method := range service.Methods {
 		pattern := method.Name // FIXME
+		pattern = strings.ToLower(pattern)
 		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRestHandler_%v(client))`,
 			pattern,
 			method.Name,
