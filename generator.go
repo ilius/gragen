@@ -21,7 +21,7 @@ const (
 var code_GontextFromRest = `func GontextFromRest(req ripo.Request) (context.Context, error) {
 	headerMap := map[string]string{}
 	for _, key := range req.HeaderKeys() {
-		value := req.GetHeader(key)
+		value := req.Header(key)
 		headerMap[key] = value
 	}
 	md := metadata.New(headerMap)
