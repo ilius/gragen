@@ -31,6 +31,15 @@ var code_GontextFromRest = `func GontextFromRest(req ripo.Request) (context.Cont
 	return ctx, nil
 }`
 
+var code_getRestError = `// getRestError: convert grpc error to rest
+func getRestError(err error) ripo.RPCError {
+	st, ok := status.FromError(err)
+	if !ok {
+		return ripo.NewError(ripo.Unknown, "", err)
+	}
+	return ripo.NewError(ripo.Code(int32(st.Code())), st.Message(), err)
+}`
+
 var code_handleRest = `func handleRest(router *httprouter.Router, method string, path string, handler ripo.Handler) {
 	handlerFunc := ripo.TranslateHandler(handler)
 	router.Handle(
@@ -122,6 +131,7 @@ func generateServiceCode(service *Service) (string, error) {
 		"net/http",
 		"golang.org/x/net/context",
 		"google.golang.org/grpc",
+		"google.golang.org/grpc/status",
 		"google.golang.org/grpc/metadata",
 		"github.com/ilius/ripo",
 		"github.com/julienschmidt/httprouter",
@@ -139,6 +149,8 @@ func generateServiceCode(service *Service) (string, error) {
 	code += ")\n\n"
 
 	code += code_GontextFromRest + "\n\n"
+
+	code += code_getRestError + "\n\n"
 
 	code += code_handleRest + "\n\n"
 
@@ -241,7 +253,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	code += "\t\tctx, err := GontextFromRest(req)\n"
 	code += "\t\tif err != nil { return nil, err }\n"
 	code += fmt.Sprintf("\t\tgrpcRes, err := client.%v(ctx, grpcReq)\n", method.Name)
-	code += "\t\tif err != nil { return nil, err }\n"
+	code += "\t\tif err != nil { return nil, getRestError(err) }\n"
 	code += "\t\treturn &ripo.Response{Data: grpcRes}, nil\n"
 	code += "\t}"
 

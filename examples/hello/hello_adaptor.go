@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"log"
+	"google.golang.org/grpc/status"
 	"net/http"
 )
 
@@ -23,27 +23,13 @@ func GontextFromRest(req ripo.Request) (context.Context, error) {
 	return ctx, nil
 }
 
-func NewRestHandler_SayHello(client HelloClient) ripo.Handler {
-	return func(req ripo.Request) (*ripo.Response, error) {
-		grpcReq := &HelloRequest{}
-		{
-			value, err := req.GetString("message")
-			if err != nil {
-				return nil, err
-			}
-			grpcReq.Message = *value
-		}
-		log.Println("grpcReq =", grpcReq)
-		ctx, err := GontextFromRest(req)
-		if err != nil {
-			return nil, err
-		}
-		grpcRes, err := client.SayHello(ctx, grpcReq)
-		if err != nil {
-			return nil, err
-		}
-		return &ripo.Response{Data: grpcRes}, nil
+// getRestError: convert grpc error to rest
+func getRestError(err error) ripo.RPCError {
+	st, ok := status.FromError(err)
+	if !ok {
+		return ripo.NewError(ripo.Unknown, "", err)
 	}
+	return ripo.NewError(ripo.Code(int32(st.Code())), st.Message(), err)
 }
 
 func handleRest(router *httprouter.Router, method string, path string, handler ripo.Handler) {
@@ -61,8 +47,30 @@ func handleRest(router *httprouter.Router, method string, path string, handler r
 	)
 }
 
+func NewRest_SayHello(client HelloClient) ripo.Handler {
+	return func(req ripo.Request) (*ripo.Response, error) {
+		grpcReq := &HelloRequest{}
+		{
+			value, err := req.GetString("message")
+			if err != nil {
+				return nil, err
+			}
+			grpcReq.Message = *value
+		}
+		ctx, err := GontextFromRest(req)
+		if err != nil {
+			return nil, err
+		}
+		grpcRes, err := client.SayHello(ctx, grpcReq)
+		if err != nil {
+			return nil, getRestError(err)
+		}
+		return &ripo.Response{Data: grpcRes}, nil
+	}
+}
+
 func RegisterRestHandlers(client HelloClient, router *httprouter.Router) {
-	handleRest(router, "GET", "SayHello", NewRestHandler_SayHello(client))
+	handleRest(router, "GET", "sayhello", NewRest_SayHello(client))
 }
 
 type helloClientByServerImp struct {
