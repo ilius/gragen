@@ -10,11 +10,13 @@ import (
 	"net/http"
 )
 
+const restHeaderToContextPrefix = "rest-header-"
+
 func GontextFromRest(req ripo.Request) (context.Context, error) {
 	headerMap := map[string]string{}
 	for _, key := range req.HeaderKeys() {
 		value := req.Header(key)
-		headerMap[key] = value
+		headerMap[restHeaderToContextPrefix+key] = value
 	}
 	md := metadata.New(headerMap)
 	ctx := context.Background()
