@@ -164,7 +164,7 @@ func generateServiceCode(service *Service) (string, error) {
 		pattern := method.Name // FIXME
 		pattern = strings.ToLower(pattern)
 		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRest_%v(client))`,
-			pattern,
+			"/"+pattern,
 			method.Name,
 		) + "\n"
 	}

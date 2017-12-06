@@ -72,7 +72,7 @@ func NewRest_SayHello(client HelloClient) ripo.Handler {
 }
 
 func RegisterRestHandlers(client HelloClient, router *httprouter.Router) {
-	handleRest(router, "GET", "sayhello", NewRest_SayHello(client))
+	handleRest(router, "GET", "/sayhello", NewRest_SayHello(client))
 }
 
 type helloClientByServerImp struct {
