@@ -284,7 +284,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		callCode = fmt.Sprintf(callCode, param.JsonKey)
 
 		// TODO: fix varName to make sure it's a valid var name
-		code += "\t\t{\n"
+		code += fmt.Sprintf("\t\t{ // %v:\n", param.JsonKey)
 		if declareValueCode != "" {
 			code += declareValueCode + "\n"
 		}

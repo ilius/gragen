@@ -76,7 +76,7 @@ func handleRest(router *httprouter.Router, method string, path string, handler r
 func NewRest_TimeDelta(client TimedeltaClient) ripo.Handler {
 	return func(req ripo.Request) (*ripo.Response, error) {
 		grpcReq := &TimeDeltaRequest{}
-		{
+		{ // now:
 			value, err := req.GetTime("now")
 			if err != nil {
 				return nil, err
