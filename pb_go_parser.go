@@ -34,24 +34,24 @@ func findClientServerInterfaces(f *ast.File) (string, string, *ast.Object) {
 	return clientName, serverName, serverObj
 }
 
-func formatTypeExpr(expr interface{}) string {
+func formatTypeExpr(expr interface{}) (string, error) {
 	switch exprTyped := expr.(type) {
 	case *ast.Ident:
-		return exprTyped.Name
+		return exprTyped.Name, nil
 	case *ast.StarExpr:
-		nonPtr := formatTypeExpr(exprTyped.X)
-		if nonPtr == "" {
-			return ""
+		nonPtr, err := formatTypeExpr(exprTyped.X)
+		if err != nil {
+			return "", err
 		}
-		return "*" + nonPtr
+		return "*" + nonPtr, nil
 	case *ast.ArrayType:
-		item := formatTypeExpr(exprTyped.Elt)
-		if item == "" {
-			return item
+		item, err := formatTypeExpr(exprTyped.Elt)
+		if err != nil {
+			return "", err
 		}
-		return "[]" + item
+		return "[]" + item, nil
 	}
-	return ""
+	return "", fmt.Errorf("could not detect type name from %v with type %T", expr, expr)
 }
 
 func getJsonKeyFromTag(tag string) string {
@@ -102,9 +102,9 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 		}
 		requestParams := []Param{}
 		for _, field := range requestObj.Decl.(*ast.TypeSpec).Type.(*ast.StructType).Fields.List {
-			Type := formatTypeExpr(field.Type)
-			if Type == "" {
-				return nil, fmt.Errorf("could not detect type name from %v with type %T", field.Type, field.Type)
+			Type, err := formatTypeExpr(field.Type)
+			if err != nil {
+				return nil, err
 			}
 			jsonKey := getJsonKeyFromTag(field.Tag.Value)
 			if jsonKey == "" {
