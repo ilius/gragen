@@ -18,6 +18,26 @@ const (
 	t_stringSlice = "[]string"
 )
 
+var code_restResponseWrapper = `
+var restJsonMarshaler = jsonpb.Marshaler{}
+
+type restResponseWrapper struct {
+	grpcRes interface{}
+}
+
+func (rw *restResponseWrapper) MarshalJSON() ([]byte, error) {
+	protoMsg, ok := rw.grpcRes.(proto.Message)
+	if !ok {
+		return json.Marshal(rw.grpcRes)
+	}
+	buf := bytes.NewBuffer(nil)
+	err := restJsonMarshaler.Marshal(buf, protoMsg)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}`
+
 var code_GontextFromRest = `const restHeaderToContextPrefix = "rest-header-"
 
 
@@ -131,11 +151,15 @@ func generateServiceCode(service *Service) (string, error) {
 	imports := []string{
 		// "fmt",
 		// "log",
+		"bytes",
+		"encoding/json",
 		"net/http",
 		"golang.org/x/net/context",
 		"google.golang.org/grpc",
 		"google.golang.org/grpc/status",
 		"google.golang.org/grpc/metadata",
+		"github.com/golang/protobuf/jsonpb",
+		"github.com/golang/protobuf/proto",
 		"github.com/ilius/ripo",
 		"github.com/julienschmidt/httprouter",
 	}
@@ -150,6 +174,8 @@ func generateServiceCode(service *Service) (string, error) {
 		code += "\t" + `"` + imp + `"` + "\n"
 	}
 	code += ")\n\n"
+
+	code += code_restResponseWrapper + "\n\n"
 
 	code += code_GontextFromRest + "\n\n"
 
@@ -257,7 +283,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	code += "\t\tif err != nil { return nil, err }\n"
 	code += fmt.Sprintf("\t\tgrpcRes, err := client.%v(ctx, grpcReq)\n", method.Name)
 	code += "\t\tif err != nil { return nil, getRestError(err) }\n"
-	code += "\t\treturn &ripo.Response{Data: grpcRes}, nil\n"
+	code += "\t\treturn &ripo.Response{Data: &restResponseWrapper{grpcRes}}, nil\n"
 	code += "\t}"
 
 	code = headerCode + code + "}"
