@@ -50,6 +50,16 @@ func formatTypeExpr(expr interface{}) (string, error) {
 			return "", err
 		}
 		return "[]" + item, nil
+	case *ast.SelectorExpr:
+		pkgName, err := formatTypeExpr(exprTyped.X)
+		if err != nil {
+			return "", err
+		}
+		localName, err := formatTypeExpr(exprTyped.Sel)
+		if err != nil {
+			return "", err
+		}
+		return pkgName + "." + localName, nil
 	}
 	return "", fmt.Errorf("could not detect type name from %v with type %T", expr, expr)
 }

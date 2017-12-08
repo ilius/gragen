@@ -167,6 +167,9 @@ func generateServiceCode(service *Service) (string, error) {
 	if strings.Contains(methodsCode, "reflect.") {
 		imports = append(imports, "reflect")
 	}
+	if strings.Contains(methodsCode, "ptypes.") {
+		imports = append(imports, "github.com/golang/protobuf/ptypes")
+	}
 
 	code := "package " + service.Name + "\n\n"
 	code += "import (\n"
@@ -233,7 +236,8 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		// if kind == reflect.Ptr {
 		// 	isPointer = true
 		// }
-		enableVarStatement := false
+		declareValueCode := ""
+		prepareValueCode := ""
 		switch typ {
 		case t_string:
 			callCode = "req.GetString(%#v)"
@@ -255,8 +259,18 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		case t_stringSlice:
 			callCode = "req.GetStringList(%#v)"
 			valueExpr = varName
+		case "*google_protobuf.Timestamp":
+			callCode = "req.GetTime(%#v)"
+			prepareValueCode = fmt.Sprintf(
+				`%vProto, err := ptypes.TimestampProto(*%v)
+				if err != nil {
+					return nil, ripo.NewError(ripo.Internal, "", err)
+				}`,
+				varName, varName,
+			)
+			valueExpr = varName + "Proto"
 		default:
-			enableVarStatement = true
+			declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
 			typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
 			callCode = "req.GetObject(%#v, " + typeExpr + ")"
 			valueExpr = varName + ".(" + typ + ")"
@@ -271,11 +285,14 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 
 		// TODO: fix varName to make sure it's a valid var name
 		code += "\t\t{\n"
-		if enableVarStatement {
-			code += fmt.Sprintf("\t\tvar %v %v\n", varNameNil, typ)
+		if declareValueCode != "" {
+			code += declareValueCode + "\n"
 		}
 		code += fmt.Sprintf("\t\t%v, err := %v\n", varName, callCode)
 		code += "\t\t\tif err != nil {return nil, err}\n"
+		if prepareValueCode != "" {
+			code += prepareValueCode + "\n"
+		}
 		code += fmt.Sprintf("\t\tgrpcReq.%v = %v\n", param.Name, valueExpr)
 		code += "\t\t}\n"
 	}

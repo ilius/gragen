@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package timedelta;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+
+service timedelta {
+	rpc TimeDelta(TimeDeltaRequest) returns (TimeDeltaResponse) {}
+}
+
+message TimeDeltaRequest {
+	google.protobuf.Timestamp now = 1;
+}
+
+message TimeDeltaResponse {
+	google.protobuf.Timestamp now = 1;
+	google.protobuf.Duration delta = 2;
+}
