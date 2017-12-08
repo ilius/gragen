@@ -1,6 +1,10 @@
 package hello
 
 import (
+	"bytes"
+	"encoding/json"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/ilius/ripo"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
@@ -9,6 +13,25 @@ import (
 	"google.golang.org/grpc/status"
 	"net/http"
 )
+
+var restJsonMarshaler = jsonpb.Marshaler{}
+
+type restResponseWrapper struct {
+	grpcRes interface{}
+}
+
+func (rw *restResponseWrapper) MarshalJSON() ([]byte, error) {
+	protoMsg, ok := rw.grpcRes.(proto.Message)
+	if !ok {
+		return json.Marshal(rw.grpcRes)
+	}
+	buf := bytes.NewBuffer(nil)
+	err := restJsonMarshaler.Marshal(buf, protoMsg)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 
 const restHeaderToContextPrefix = "rest-header-"
 
@@ -52,7 +75,7 @@ func handleRest(router *httprouter.Router, method string, path string, handler r
 func NewRest_SayHello(client HelloClient) ripo.Handler {
 	return func(req ripo.Request) (*ripo.Response, error) {
 		grpcReq := &HelloRequest{}
-		{
+		{ // message:
 			value, err := req.GetString("message")
 			if err != nil {
 				return nil, err
@@ -67,7 +90,7 @@ func NewRest_SayHello(client HelloClient) ripo.Handler {
 		if err != nil {
 			return nil, getRestError(err)
 		}
-		return &ripo.Response{Data: grpcRes}, nil
+		return &ripo.Response{Data: &restResponseWrapper{grpcRes}}, nil
 	}
 }
 
