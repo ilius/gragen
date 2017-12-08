@@ -39,9 +39,17 @@ func formatTypeExpr(expr interface{}) string {
 	case *ast.Ident:
 		return exprTyped.Name
 	case *ast.StarExpr:
-		return "*" + formatTypeExpr(exprTyped.X)
+		nonPtr := formatTypeExpr(exprTyped.X)
+		if nonPtr == "" {
+			return ""
+		}
+		return "*" + nonPtr
 	case *ast.ArrayType:
-		return "[]" + formatTypeExpr(exprTyped.Elt)
+		item := formatTypeExpr(exprTyped.Elt)
+		if item == "" {
+			return item
+		}
+		return "[]" + item
 	}
 	return ""
 }
