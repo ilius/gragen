@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"go/format"
-	"log"
 	"strings"
 )
 
@@ -259,27 +258,38 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		case t_stringSlice:
 			callCode = "req.GetStringList(%#v)"
 			valueExpr = varName
-		case "*google_protobuf.Timestamp":
-			callCode = "req.GetTime(%#v)"
-			prepareValueCode = fmt.Sprintf(
-				`%vProto, err := ptypes.TimestampProto(*%v)
-				if err != nil {
-					return nil, ripo.NewError(ripo.Internal, "", err)
-				}`,
-				varName, varName,
-			)
-			valueExpr = varName + "Proto"
 		default:
-			declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
-			typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
-			callCode = "req.GetObject(%#v, " + typeExpr + ")"
-			valueExpr = varName + ".(" + typ + ")"
-			// if strings.HasPrefix(typ, "[]")
-			// if strings.HasPrefix(typ, "*")
+			if strings.HasPrefix(typ, "*google_protobuf") {
+				parts := strings.Split(typ, ".")
+				if len(parts) < 2 {
+					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
+				}
+				typeName := parts[1]
+				switch typeName {
+				case "Timestamp":
+					callCode = "req.GetTime(%#v)"
+					prepareValueCode = fmt.Sprintf(
+						`%vProto, err := ptypes.TimestampProto(*%v)
+						if err != nil {
+							return nil, ripo.NewError(ripo.Internal, "", err)
+						}`,
+						varName, varName,
+					)
+					valueExpr = varName + "Proto"
+				default:
+					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
+				}
+			} else {
+				declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
+				typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
+				callCode = "req.GetObject(%#v, " + typeExpr + ")"
+				valueExpr = varName + ".(" + typ + ")"
+				// if strings.HasPrefix(typ, "[]")
+				// if strings.HasPrefix(typ, "*")
+			}
 		}
 		if callCode == "" {
-			log.Printf("unrecognized type %v for param %#v", typ, param.Name)
-			continue
+			return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
 		}
 		callCode = fmt.Sprintf(callCode, param.JsonKey)
 
