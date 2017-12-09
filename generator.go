@@ -126,21 +126,6 @@ func genClientFromServerFunc(service *Service) (string, error) {
 	return code, nil
 }
 
-// func genClientOrServerSwitchBlock(service *Service, code string) string {
-// 	return fmt.Sprintf(
-// 		`switch client := clientArg.(type) {
-// 	case %v: // , %v
-// 		%v
-// 	default:
-// 		panic(fmt.Sprintf("invalid client type %%T, must be %v or %v", client))
-// 	}
-// 	`,
-// 		service.ClientName, service.ServerName,
-// 		code,
-// 		service.ClientName, service.ServerName,
-// 	)
-// }
-
 func generateServiceCode(service *Service) (string, error) {
 	service.AdaptorImports = map[string][2]string{
 		// "fmt": {"", "fmt"},
@@ -231,10 +216,6 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		varNameNil := "valueNil"
 		valueExpr := "*" + varName
 		typ := param.Type
-		// isPointer := false
-		// if kind == reflect.Ptr {
-		// 	isPointer = true
-		// }
 		declareValueCode := ""
 		prepareValueCode := ""
 		switch typ {
