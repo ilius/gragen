@@ -14,4 +14,6 @@ go build "$GRAGEN" || exit $?
 
 
 ./gragen hello.pb.go || exit $?
-go build
+
+go build -o server.bin ./server || exit $?
+chmod a+x server.bin
