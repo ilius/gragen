@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package customtype;
+
+import "github.com/ilius/gragen/examples/customtype/types/types.proto";
+
+service customtype {
+	rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse) {}
+	rpc UpdateUserInfo(UpdateUserInfoRequest) returns (UpdateUserInfoResponse) {}
+}
+
+message GetUserInfoRequest {
+	string userId = 1;
+}
+
+message GetUserInfoResponse {
+	types.User userInfo = 1;
+}
+
+message UpdateUserInfoRequest {
+	types.User userInfo = 1;
+}
+
+message UpdateUserInfoResponse {}

@@ -154,6 +154,22 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	imports := map[string][2]string{}
+	for _, imp := range f.Imports {
+		alias := imp.Name.Name
+		path := strings.Trim(imp.Path.Value, `"`)
+		name := alias
+		switch alias {
+		case "":
+			name = path // FIXME
+		case ".", "_":
+			// there is no usable namespace, so we just use the `path` to make it unique
+			name = path
+		}
+		imports[name] = [2]string{alias, path}
+	}
+
 	clientName, serverName, serverObj := findClientServerInterfaces(f)
 	if serverObj == nil {
 		return nil, fmt.Errorf("could not find Server interface")
@@ -168,6 +184,7 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 		ServerName: serverName,
 		Methods:    methods,
 		DirPath:    dirPath,
+		Imports:    imports,
 	}
 
 	return service, nil

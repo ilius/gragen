@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/format"
+	"log"
 	"strings"
 )
 
@@ -270,6 +271,28 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 				}
 				service.AdaptorImports["ptypes"] = [2]string{"", "github.com/golang/protobuf/ptypes"}
 			} else {
+				typeParts := strings.Split(typ, ".")
+				if len(typeParts) > 1 {
+					pkgName := strings.TrimLeftFunc(typeParts[0], func(r rune) bool {
+						switch r {
+						case '*', '[', ']':
+							return true
+						}
+						return false
+					})
+					pkgImp, ok := service.Imports[pkgName]
+					if ok {
+						exImp, exists := service.AdaptorImports[pkgName]
+						if exists {
+							// should be the same
+							if exImp[0] != pkgImp[0] || exImp[1] != pkgImp[1] {
+								log.Printf("Found 2 imports for package %v: %v and %v", pkgName, exImp, pkgImp)
+							}
+						} else {
+							service.AdaptorImports[pkgName] = pkgImp
+						}
+					}
+				}
 				declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
 				typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
 				callCode = "req.GetObject(%#v, " + typeExpr + ")"
