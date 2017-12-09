@@ -142,41 +142,38 @@ func genClientFromServerFunc(service *Service) (string, error) {
 // }
 
 func generateServiceCode(service *Service) (string, error) {
+	service.AdaptorImports = map[string][2]string{
+		// "fmt": {"", "fmt"},
+		// "log": {"", "log"},
+		"bytes":      {"", "bytes"},
+		"json":       {"", "encoding/json"},
+		"http":       {"", "net/http"},
+		"context":    {"", "golang.org/x/net/context"},
+		"grpc":       {"", "google.golang.org/grpc"},
+		"status":     {"", "google.golang.org/grpc/status"},
+		"metadata":   {"", "google.golang.org/grpc/metadata"},
+		"jsonpb":     {"", "github.com/golang/protobuf/jsonpb"},
+		"proto":      {"", "github.com/golang/protobuf/proto"},
+		"ripo":       {"", "github.com/ilius/ripo"},
+		"httprouter": {"", "github.com/julienschmidt/httprouter"},
+	}
+
 	methodsCode, err := generateServiceMethodsCode(service)
 	if err != nil {
 		return "", err
 	}
 
-	imports := []string{
-		// "fmt",
-		// "log",
-		"bytes",
-		"encoding/json",
-		"net/http",
-		"golang.org/x/net/context",
-		"google.golang.org/grpc",
-		"google.golang.org/grpc/status",
-		"google.golang.org/grpc/metadata",
-		"github.com/golang/protobuf/jsonpb",
-		"github.com/golang/protobuf/proto",
-		"github.com/ilius/ripo",
-		"github.com/julienschmidt/httprouter",
-	}
-
-	if strings.Contains(methodsCode, "time.") { // TODO: prefixed with " " or "("
-		imports = append(imports, "time")
-	}
-	if strings.Contains(methodsCode, "reflect.") { // TODO: prefixed with " " or "("
-		imports = append(imports, "reflect")
-	}
-	if strings.Contains(methodsCode, "ptypes.") { // TODO: prefixed with " " or "("
-		imports = append(imports, "github.com/golang/protobuf/ptypes")
-	}
-
 	code := "package " + service.Name + "\n\n"
 	code += "import (\n"
-	for _, imp := range imports {
-		code += "\t" + `"` + imp + `"` + "\n"
+
+	for _, imp := range service.AdaptorImports {
+		alias := imp[0]
+		path := imp[1]
+		if alias == "" {
+			code += "\t" + `"` + path + `"` + "\n"
+		} else {
+			code += "\t" + alias + ` "` + path + `"` + "\n"
+		}
 	}
 	code += ")\n\n"
 
@@ -286,9 +283,11 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 						varName, varName,
 					)
 					valueExpr = varName + "Proto"
+					service.AdaptorImports["time"] = [2]string{"", "time"}
 				default:
 					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
 				}
+				service.AdaptorImports["ptypes"] = [2]string{"", "github.com/golang/protobuf/ptypes"}
 			} else {
 				declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
 				typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
@@ -296,6 +295,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 				valueExpr = varName + ".(" + typ + ")"
 				// if strings.HasPrefix(typ, "[]")
 				// if strings.HasPrefix(typ, "*")
+				service.AdaptorImports["reflect"] = [2]string{"", "reflect"}
 			}
 		}
 		if callCode == "" {

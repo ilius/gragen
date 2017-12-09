@@ -10,6 +10,12 @@ type Service struct {
 	ClientName string // name of grpc client interface
 	Methods    []*Method
 	DirPath    string
+
+	// the following 2 maps: map[namespace] -> {alias, import_path}
+	// alias can be empty, and is usually empty
+	// alias can also be "." and "_"
+	Imports        map[string][2]string
+	AdaptorImports map[string][2]string
 }
 
 type Param struct {
