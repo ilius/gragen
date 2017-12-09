@@ -163,10 +163,13 @@ func generateServiceCode(service *Service) (string, error) {
 		"github.com/julienschmidt/httprouter",
 	}
 
-	if strings.Contains(methodsCode, "reflect.") {
+	if strings.Contains(methodsCode, "time.") { // TODO: prefixed with " " or "("
+		imports = append(imports, "time")
+	}
+	if strings.Contains(methodsCode, "reflect.") { // TODO: prefixed with " " or "("
 		imports = append(imports, "reflect")
 	}
-	if strings.Contains(methodsCode, "ptypes.") {
+	if strings.Contains(methodsCode, "ptypes.") { // TODO: prefixed with " " or "("
 		imports = append(imports, "github.com/golang/protobuf/ptypes")
 	}
 
@@ -273,6 +276,13 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 						if err != nil {
 							return nil, ripo.NewError(ripo.Internal, "", err)
 						}`,
+						varName, varName,
+					)
+					valueExpr = varName + "Proto"
+				case "Duration":
+					callCode = "req.GetFloat(%#v)"
+					prepareValueCode = fmt.Sprintf(
+						`%vProto := ptypes.DurationProto(time.Duration(*%v * float64(time.Second)))`,
 						varName, varName,
 					)
 					valueExpr = varName + "Proto"

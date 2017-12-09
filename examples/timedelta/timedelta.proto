@@ -8,6 +8,7 @@ import "google/protobuf/duration.proto";
 
 service timedelta {
 	rpc TimeDelta(TimeDeltaRequest) returns (TimeDeltaResponse) {}
+	rpc Sleep(SleepRequest) returns (SleepResponse) {}
 }
 
 message TimeDeltaRequest {
@@ -18,3 +19,9 @@ message TimeDeltaResponse {
 	google.protobuf.Timestamp now = 1;
 	google.protobuf.Duration delta = 2;
 }
+
+message SleepRequest {
+	google.protobuf.Duration duration = 1;
+}
+
+message SleepResponse {}

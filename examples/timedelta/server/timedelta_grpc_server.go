@@ -30,3 +30,12 @@ func (s *Server) TimeDelta(ctx context.Context, request *timedelta.TimeDeltaRequ
 		Delta: deltaProto,
 	}, nil
 }
+
+func (s *Server) Sleep(ctx context.Context, request *timedelta.SleepRequest) (*timedelta.SleepResponse, error) {
+	duration, err := ptypes.Duration(request.Duration)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error in parsing duration")
+	}
+	time.Sleep(duration)
+	return &timedelta.SleepResponse{}, nil
+}

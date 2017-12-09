@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"net/http"
+	"time"
 )
 
 var restJsonMarshaler = jsonpb.Marshaler{}
@@ -99,8 +100,32 @@ func NewRest_TimeDelta(client TimedeltaClient) ripo.Handler {
 	}
 }
 
+func NewRest_Sleep(client TimedeltaClient) ripo.Handler {
+	return func(req ripo.Request) (*ripo.Response, error) {
+		grpcReq := &SleepRequest{}
+		{ // duration:
+			value, err := req.GetFloat("duration")
+			if err != nil {
+				return nil, err
+			}
+			valueProto := ptypes.DurationProto(time.Duration(*value * float64(time.Second)))
+			grpcReq.Duration = valueProto
+		}
+		ctx, err := GontextFromRest(req)
+		if err != nil {
+			return nil, err
+		}
+		grpcRes, err := client.Sleep(ctx, grpcReq)
+		if err != nil {
+			return nil, getRestError(err)
+		}
+		return &ripo.Response{Data: &restResponseWrapper{grpcRes}}, nil
+	}
+}
+
 func RegisterRestHandlers(client TimedeltaClient, router *httprouter.Router) {
 	handleRest(router, "GET", "/timedelta", NewRest_TimeDelta(client))
+	handleRest(router, "GET", "/sleep", NewRest_Sleep(client))
 }
 
 type timedeltaClientByServerImp struct {
@@ -109,6 +134,10 @@ type timedeltaClientByServerImp struct {
 
 func (c *timedeltaClientByServerImp) TimeDelta(ctx context.Context, in *TimeDeltaRequest, opts ...grpc.CallOption) (*TimeDeltaResponse, error) {
 	return c.srv.TimeDelta(ctx, in)
+}
+
+func (c *timedeltaClientByServerImp) Sleep(ctx context.Context, in *SleepRequest, opts ...grpc.CallOption) (*SleepResponse, error) {
+	return c.srv.Sleep(ctx, in)
 }
 
 func NewTimedeltaClientFromServer(srv TimedeltaServer) TimedeltaClient {
