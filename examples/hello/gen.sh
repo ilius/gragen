@@ -2,7 +2,7 @@
 
 GRAGEN="github.com/ilius/gragen"
 
-rm hello.pb.go
+rm hello.pb.go hello_adaptor.go 2>/dev/null
 
 protoc -I. \
 	"-I${GOPATH}/src" \
