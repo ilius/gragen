@@ -29,9 +29,36 @@ type Method struct {
 	RequestName   string
 	RequestParams []Param
 	ResponseName  string
+
+	// StreamRequest  bool
+	// StreamResponse bool
 }
 
 func (m Method) String() string {
 	jsonBytes, _ := json.MarshalIndent(m, "", "    ")
 	return string(jsonBytes)
+}
+
+type InterfaceMethod struct {
+	Name        string
+	InputTypes  []string
+	OutputTypes []string
+}
+
+type MethodFieldKind string
+
+const (
+	MF_error         MethodFieldKind = "error"
+	MF_context       MethodFieldKind = "context"
+	MF_interface     MethodFieldKind = "interface"
+	MF_structPointer MethodFieldKind = "structPointer"
+	MF_unknown       MethodFieldKind = "unknown"
+)
+
+// MethodField is either an argument, or a return value
+type MethodField struct {
+	Name string
+	Kind MethodFieldKind
+	// InterfaceMethods: only set when Kind == MF_interface
+	InterfaceMethods map[string]*InterfaceMethod `json:",omitempty"`
 }
