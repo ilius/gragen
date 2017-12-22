@@ -104,11 +104,15 @@ func NewRest_Sleep(client TimedeltaClient) ripo.Handler {
 	return func(req ripo.Request) (*ripo.Response, error) {
 		grpcReq := &SleepRequest{}
 		{ // duration:
-			value, err := req.GetFloat("duration")
+			value, err := req.GetString("duration")
 			if err != nil {
 				return nil, err
 			}
-			valueProto := ptypes.DurationProto(time.Duration(*value * float64(time.Second)))
+			valueGo, err := time.ParseDuration(*value)
+			if err != nil {
+				return nil, ripo.NewError(ripo.InvalidArgument, "invalid 'duration', must be a valid duration string", err)
+			}
+			valueProto := ptypes.DurationProto(valueGo)
 			grpcReq.Duration = valueProto
 		}
 		ctx, err := GontextFromRest(req)

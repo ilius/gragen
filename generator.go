@@ -259,10 +259,12 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 					)
 					valueExpr = varName + "Proto"
 				case "Duration":
-					callCode = "req.GetFloat(%#v)"
+					callCode = "req.GetString(%#v)"
 					prepareValueCode = fmt.Sprintf(
-						`%vProto := ptypes.DurationProto(time.Duration(*%v * float64(time.Second)))`,
-						varName, varName,
+						`%vGo, err := time.ParseDuration(*%v)
+						if err != nil {return nil, ripo.NewError(ripo.InvalidArgument, "invalid '%v', must be a valid duration string", err)}
+						%vProto := ptypes.DurationProto(%vGo)`,
+						varName, varName, param.JsonKey, varName, varName,
 					)
 					valueExpr = varName + "Proto"
 					service.AdaptorImports["time"] = [2]string{"", "time"}
