@@ -14,6 +14,15 @@ import (
 	"net/http"
 )
 
+func init() {
+	ripo.SetDefaultParamSources(
+		ripo.FromBody,
+		ripo.FromForm,
+		// ripo.FromContext,
+		ripo.FromEmpty,
+	)
+}
+
 var restJsonMarshaler = jsonpb.Marshaler{}
 
 type restResponseWrapper struct {
@@ -80,7 +89,9 @@ func NewRest_SayHello(client HelloClient) ripo.Handler {
 			if err != nil {
 				return nil, err
 			}
-			grpcReq.Message = *value
+			if value != nil && *value != "" {
+				grpcReq.Message = *value
+			}
 		}
 		ctx, err := GontextFromRest(req)
 		if err != nil {

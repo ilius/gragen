@@ -16,6 +16,15 @@ import (
 	"reflect"
 )
 
+func init() {
+	ripo.SetDefaultParamSources(
+		ripo.FromBody,
+		ripo.FromForm,
+		// ripo.FromContext,
+		ripo.FromEmpty,
+	)
+}
+
 var restJsonMarshaler = jsonpb.Marshaler{}
 
 type restResponseWrapper struct {
@@ -82,7 +91,9 @@ func NewRest_GetUserInfo(client CustomtypeClient) ripo.Handler {
 			if err != nil {
 				return nil, err
 			}
-			grpcReq.UserId = *value
+			if value != nil && *value != "" {
+				grpcReq.UserId = *value
+			}
 		}
 		ctx, err := GontextFromRest(req)
 		if err != nil {
@@ -105,7 +116,9 @@ func NewRest_UpdateUserInfo(client CustomtypeClient) ripo.Handler {
 			if err != nil {
 				return nil, err
 			}
-			grpcReq.UserInfo = value.(*types.User)
+			if value != nil {
+				grpcReq.UserInfo = value.(*types.User)
+			}
 		}
 		ctx, err := GontextFromRest(req)
 		if err != nil {

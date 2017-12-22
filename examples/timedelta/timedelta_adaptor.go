@@ -16,6 +16,15 @@ import (
 	"time"
 )
 
+func init() {
+	ripo.SetDefaultParamSources(
+		ripo.FromBody,
+		ripo.FromForm,
+		// ripo.FromContext,
+		ripo.FromEmpty,
+	)
+}
+
 var restJsonMarshaler = jsonpb.Marshaler{}
 
 type restResponseWrapper struct {
@@ -82,11 +91,13 @@ func NewRest_TimeDelta(client TimedeltaClient) ripo.Handler {
 			if err != nil {
 				return nil, err
 			}
-			valueProto, err := ptypes.TimestampProto(*value)
-			if err != nil {
-				return nil, ripo.NewError(ripo.Internal, "", err)
+			if value != nil {
+				valueProto, err := ptypes.TimestampProto(*value)
+				if err != nil {
+					return nil, ripo.NewError(ripo.Internal, "", err)
+				}
+				grpcReq.Now = valueProto
 			}
-			grpcReq.Now = valueProto
 		}
 		ctx, err := GontextFromRest(req)
 		if err != nil {
@@ -108,12 +119,14 @@ func NewRest_Sleep(client TimedeltaClient) ripo.Handler {
 			if err != nil {
 				return nil, err
 			}
-			valueGo, err := time.ParseDuration(*value)
-			if err != nil {
-				return nil, ripo.NewError(ripo.InvalidArgument, "invalid 'duration', must be a valid duration string", err)
+			if value != nil {
+				valueGo, err := time.ParseDuration(*value)
+				if err != nil {
+					return nil, ripo.NewError(ripo.InvalidArgument, "invalid 'duration', must be a valid duration string", err)
+				}
+				valueProto := ptypes.DurationProto(valueGo)
+				grpcReq.Duration = valueProto
 			}
-			valueProto := ptypes.DurationProto(valueGo)
-			grpcReq.Duration = valueProto
 		}
 		ctx, err := GontextFromRest(req)
 		if err != nil {

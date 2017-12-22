@@ -18,6 +18,15 @@ const (
 	t_stringSlice = "[]string"
 )
 
+var code_init = `func init() {
+	ripo.SetDefaultParamSources(
+		ripo.FromBody,
+		ripo.FromForm,
+		// ripo.FromContext,
+		ripo.FromEmpty,
+	)
+}`
+
 var code_restResponseWrapper = `
 var restJsonMarshaler = jsonpb.Marshaler{}
 
@@ -163,6 +172,8 @@ func generateServiceCode(service *Service) (string, error) {
 	}
 	code += ")\n\n"
 
+	code += code_init + "\n\n"
+
 	code += code_restResponseWrapper + "\n\n"
 
 	code += code_GontextFromRest + "\n\n"
@@ -213,6 +224,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	code += fmt.Sprintf("grpcReq := &%v{}\n", method.RequestName)
 	for _, param := range method.RequestParams {
 		callCode := ""
+		zeroValue := ""
 		varName := "value" // isolated in a block
 		varNameNil := "valueNil"
 		valueExpr := "*" + varName
@@ -222,21 +234,28 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		switch typ {
 		case t_string:
 			callCode = "req.GetString(%#v)"
+			zeroValue = `""`
 		case t_int:
 			callCode = "req.GetInt(%#v)"
+			zeroValue = "0"
 		case t_int64:
 			callCode = "req.GetInt(%#v)"
 			valueExpr = fmt.Sprintf("int64(*%v)", varName)
+			zeroValue = "0"
 		case t_int32:
 			callCode = "req.GetInt(%#v)"
 			valueExpr = fmt.Sprintf("int32(*%v)", varName)
+			zeroValue = "0"
 		case t_float64:
 			callCode = "req.GetFloat(%#v)"
+			zeroValue = "0"
 		case t_float32:
 			callCode = "req.GetFloat(%#v)"
 			valueExpr = fmt.Sprintf("float32(*%v)", varName)
+			zeroValue = "0"
 		case t_bool:
 			callCode = "req.GetBool(%#v)"
+			zeroValue = "false"
 		case t_stringSlice:
 			callCode = "req.GetStringList(%#v)"
 			valueExpr = varName
@@ -316,10 +335,16 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		}
 		code += fmt.Sprintf("\t\t%v, err := %v\n", varName, callCode)
 		code += "\t\t\tif err != nil {return nil, err}\n"
+		if zeroValue == "" {
+			code += fmt.Sprintf("if %v != nil {", varName)
+		} else {
+			code += fmt.Sprintf("if %v != nil && *%v != %v {", varName, varName, zeroValue)
+		}
 		if prepareValueCode != "" {
-			code += prepareValueCode + "\n"
+			code += "\t" + prepareValueCode + "\n"
 		}
 		code += fmt.Sprintf("\t\tgrpcReq.%v = %v\n", param.Name, valueExpr)
+		code += "\t}\n"
 		code += "\t\t}\n"
 	}
 	code += "\t\tctx, err := GontextFromRest(req)\n"
