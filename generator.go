@@ -241,12 +241,12 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 			callCode = "req.GetStringList(%#v)"
 			valueExpr = varName
 		default:
-			if strings.HasPrefix(typ, "*google_protobuf") {
-				parts := strings.Split(typ, ".")
-				if len(parts) < 2 {
+			typeParts := typ.Split()
+			if typ.HasPrefix("*google_protobuf") {
+				if len(typeParts) < 2 {
 					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
 				}
-				typeName := parts[1]
+				typeName := typeParts[1]
 				switch typeName {
 				case "Timestamp":
 					callCode = "req.GetTime(%#v)"
@@ -273,7 +273,6 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 				}
 				service.AdaptorImports["ptypes"] = [2]string{"", "github.com/golang/protobuf/ptypes"}
 			} else {
-				typeParts := strings.Split(typ, ".")
 				if len(typeParts) > 1 {
 					pkgName := strings.TrimLeftFunc(typeParts[0], func(r rune) bool {
 						switch r {
@@ -298,7 +297,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 				declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
 				typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
 				callCode = "req.GetObject(%#v, " + typeExpr + ")"
-				valueExpr = varName + ".(" + typ + ")"
+				valueExpr = varName + ".(" + string(typ) + ")"
 				// if strings.HasPrefix(typ, "[]")
 				// if strings.HasPrefix(typ, "*")
 				service.AdaptorImports["reflect"] = [2]string{"", "reflect"}

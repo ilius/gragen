@@ -238,7 +238,7 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 		}
 		requestParams := []Param{}
 		for _, field := range requestObj.Decl.(*ast.TypeSpec).Type.(*ast.StructType).Fields.List {
-			Type, err := formatTypeExpr(field.Type)
+			typ, err := formatTypeExpr(field.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -249,7 +249,7 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 			requestParams = append(requestParams, Param{
 				Name:    field.Names[0].Name,
 				JsonKey: jsonKey,
-				Type:    Type,
+				Type:    TypeRepr(typ),
 			})
 		}
 

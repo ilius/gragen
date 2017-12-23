@@ -1,6 +1,6 @@
 package main
 
-func ZeroValueByType(typ string) string {
+func ZeroValueByType(typ TypeRepr) string {
 	switch typ {
 	case t_string:
 		return z_string

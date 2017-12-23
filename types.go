@@ -2,7 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 )
+
+type TypeRepr string
+
+func (typ TypeRepr) Split() []string {
+	return strings.Split(string(typ), ".")
+}
+
+func (typ TypeRepr) HasPrefix(prefix string) bool {
+	return strings.HasPrefix(string(typ), prefix)
+}
 
 type Service struct {
 	Name       string // starts with lowercase
@@ -21,7 +32,7 @@ type Service struct {
 type Param struct {
 	JsonKey string
 	Name    string
-	Type    string
+	Type    TypeRepr
 }
 
 type Method struct {

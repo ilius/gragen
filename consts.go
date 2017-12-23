@@ -1,14 +1,15 @@
 package main
 
 const (
-	t_string      = "string"
-	t_int         = "int"
-	t_int32       = "int32"
-	t_int64       = "int64"
-	t_float64     = "float64"
-	t_float32     = "float32"
-	t_bool        = "bool"
-	t_stringSlice = "[]string"
+	t_none        = TypeRepr("")
+	t_string      = TypeRepr("string")
+	t_int         = TypeRepr("int")
+	t_int32       = TypeRepr("int32")
+	t_int64       = TypeRepr("int64")
+	t_float64     = TypeRepr("float64")
+	t_float32     = TypeRepr("float32")
+	t_bool        = TypeRepr("bool")
+	t_stringSlice = TypeRepr("[]string")
 )
 
 const (
