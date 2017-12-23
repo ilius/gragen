@@ -7,17 +7,6 @@ import (
 	"strings"
 )
 
-const (
-	t_string      = "string"
-	t_int         = "int"
-	t_int32       = "int32"
-	t_int64       = "int64"
-	t_float64     = "float64"
-	t_float32     = "float32"
-	t_bool        = "bool"
-	t_stringSlice = "[]string"
-)
-
 var code_init = `func init() {
 	ripo.SetDefaultParamSources(
 		ripo.FromBody,
@@ -224,7 +213,6 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	code += fmt.Sprintf("grpcReq := &%v{}\n", method.RequestName)
 	for _, param := range method.RequestParams {
 		callCode := ""
-		zeroValue := ""
 		varName := "value" // isolated in a block
 		varNameNil := "valueNil"
 		valueExpr := "*" + varName
@@ -234,28 +222,21 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		switch typ {
 		case t_string:
 			callCode = "req.GetString(%#v)"
-			zeroValue = `""`
 		case t_int:
 			callCode = "req.GetInt(%#v)"
-			zeroValue = "0"
 		case t_int64:
 			callCode = "req.GetInt(%#v)"
 			valueExpr = fmt.Sprintf("int64(*%v)", varName)
-			zeroValue = "0"
 		case t_int32:
 			callCode = "req.GetInt(%#v)"
 			valueExpr = fmt.Sprintf("int32(*%v)", varName)
-			zeroValue = "0"
 		case t_float64:
 			callCode = "req.GetFloat(%#v)"
-			zeroValue = "0"
 		case t_float32:
 			callCode = "req.GetFloat(%#v)"
 			valueExpr = fmt.Sprintf("float32(*%v)", varName)
-			zeroValue = "0"
 		case t_bool:
 			callCode = "req.GetBool(%#v)"
-			zeroValue = "false"
 		case t_stringSlice:
 			callCode = "req.GetStringList(%#v)"
 			valueExpr = varName
@@ -335,6 +316,7 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 		}
 		code += fmt.Sprintf("\t\t%v, err := %v\n", varName, callCode)
 		code += "\t\t\tif err != nil {return nil, err}\n"
+		zeroValue := ZeroValueByType(typ)
 		if zeroValue == "" {
 			code += fmt.Sprintf("if %v != nil {", varName)
 		} else {
