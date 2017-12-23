@@ -134,7 +134,7 @@ func NewRest_UpdateUserInfo(client CustomtypeClient) ripo.Handler {
 
 func RegisterRestHandlers(client CustomtypeClient, router *httprouter.Router) {
 	handleRest(router, "GET", "/getuserinfo", NewRest_GetUserInfo(client))
-	handleRest(router, "GET", "/updateuserinfo", NewRest_UpdateUserInfo(client))
+	handleRest(router, "POST", "/updateuserinfo", NewRest_UpdateUserInfo(client))
 }
 
 type customtypeClientByServerImp struct {

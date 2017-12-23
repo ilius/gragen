@@ -177,7 +177,12 @@ func generateServiceCode(service *Service) (string, error) {
 	for _, method := range service.Methods {
 		pattern := method.Name // FIXME
 		pattern = strings.ToLower(pattern)
-		code += fmt.Sprintf(`handleRest(router, "GET", %#v, NewRest_%v(client))`,
+		httpMethod := "GET"
+		if methodHasAnyNonBasicTypeParam(method) {
+			httpMethod = "POST"
+		}
+		code += fmt.Sprintf(`handleRest(router, "%v", %#v, NewRest_%v(client))`,
+			httpMethod,
 			"/"+pattern,
 			method.Name,
 		) + "\n"
@@ -201,6 +206,21 @@ func generateServiceCode(service *Service) (string, error) {
 	}
 
 	return code, nil
+}
+
+func methodHasAnyNonBasicTypeParam(method *Method) bool {
+	for _, param := range method.RequestParams {
+		if IsBasicType(param.Type) {
+			continue
+		}
+		parts := param.Type.Split()
+		switch parts[len(parts)-1] {
+		case "Timestamp", "Duration":
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 func generateParamSetterCode(service *Service, param Param) (string, error) {
