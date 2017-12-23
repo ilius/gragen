@@ -203,6 +203,125 @@ func generateServiceCode(service *Service) (string, error) {
 	return code, nil
 }
 
+func generateParamSetterCode(service *Service, param Param) (string, error) {
+	callCode := ""
+	varName := "value" // isolated in a block
+	varNameNil := "valueNil"
+	valueExpr := "*" + varName
+	typ := param.Type
+	declareValueCode := ""
+	prepareValueCode := ""
+	switch typ {
+	case t_string:
+		callCode = "req.GetString(%#v)"
+	case t_int:
+		callCode = "req.GetInt(%#v)"
+	case t_int64:
+		callCode = "req.GetInt(%#v)"
+		valueExpr = fmt.Sprintf("int64(*%v)", varName)
+	case t_int32:
+		callCode = "req.GetInt(%#v)"
+		valueExpr = fmt.Sprintf("int32(*%v)", varName)
+	case t_float64:
+		callCode = "req.GetFloat(%#v)"
+	case t_float32:
+		callCode = "req.GetFloat(%#v)"
+		valueExpr = fmt.Sprintf("float32(*%v)", varName)
+	case t_bool:
+		callCode = "req.GetBool(%#v)"
+	case t_stringSlice:
+		callCode = "req.GetStringList(%#v)"
+		valueExpr = varName
+	default:
+		typeParts := typ.Split()
+		if typ.HasPrefix("*google_protobuf") {
+			if len(typeParts) < 2 {
+				return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
+			}
+			typeName := typeParts[1]
+			switch typeName {
+			case "Timestamp":
+				callCode = "req.GetTime(%#v)"
+				prepareValueCode = fmt.Sprintf(
+					`%vProto, err := ptypes.TimestampProto(*%v)
+				if err != nil {
+					return nil, ripo.NewError(ripo.Internal, "", err)
+				}`,
+					varName, varName,
+				)
+				valueExpr = varName + "Proto"
+			case "Duration":
+				callCode = "req.GetString(%#v)"
+				prepareValueCode = fmt.Sprintf(
+					`%vGo, err := time.ParseDuration(*%v)
+				if err != nil {return nil, ripo.NewError(ripo.InvalidArgument, "invalid '%v', must be a valid duration string", err)}
+				%vProto := ptypes.DurationProto(%vGo)`,
+					varName, varName, param.JsonKey, varName, varName,
+				)
+				valueExpr = varName + "Proto"
+				service.AdaptorImports["time"] = [2]string{"", "time"}
+			default:
+				return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
+			}
+			service.AdaptorImports["ptypes"] = [2]string{"", "github.com/golang/protobuf/ptypes"}
+		} else {
+			if len(typeParts) > 1 {
+				pkgName := strings.TrimLeftFunc(typeParts[0], func(r rune) bool {
+					switch r {
+					case '*', '[', ']':
+						return true
+					}
+					return false
+				})
+				pkgImp, ok := service.Imports[pkgName]
+				if ok {
+					exImp, exists := service.AdaptorImports[pkgName]
+					if exists {
+						// should be the same
+						if exImp[0] != pkgImp[0] || exImp[1] != pkgImp[1] {
+							log.Printf("Found 2 imports for package %v: %v and %v", pkgName, exImp, pkgImp)
+						}
+					} else {
+						service.AdaptorImports[pkgName] = pkgImp
+					}
+				}
+			}
+			declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
+			typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
+			callCode = "req.GetObject(%#v, " + typeExpr + ")"
+			valueExpr = varName + ".(" + string(typ) + ")"
+			// if strings.HasPrefix(typ, "[]")
+			// if strings.HasPrefix(typ, "*")
+			service.AdaptorImports["reflect"] = [2]string{"", "reflect"}
+		}
+	}
+	if callCode == "" {
+		return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
+	}
+	callCode = fmt.Sprintf(callCode, param.JsonKey)
+
+	code := ""
+	code += fmt.Sprintf("\t\t{ // %v:\n", param.JsonKey)
+	if declareValueCode != "" {
+		code += declareValueCode + "\n"
+	}
+	code += fmt.Sprintf("\t\t%v, err := %v\n", varName, callCode)
+	code += "\t\t\tif err != nil {return nil, err}\n"
+	zeroValue := ZeroValueByType(typ)
+	if zeroValue == "" {
+		code += fmt.Sprintf("if %v != nil {", varName)
+	} else {
+		code += fmt.Sprintf("if %v != nil && *%v != %v {", varName, varName, zeroValue)
+	}
+	if prepareValueCode != "" {
+		code += "\t" + prepareValueCode + "\n"
+	}
+	code += fmt.Sprintf("\t\tgrpcReq.%v = %v\n", param.Name, valueExpr)
+	code += "\t}\n"
+	code += "\t\t}"
+	return code, nil
+}
+
 func generateMethodCode(service *Service, method *Method) (string, error) {
 	headerCode := fmt.Sprintf(
 		"func NewRest_%v(client %v) ripo.Handler {\n",
@@ -212,121 +331,11 @@ func generateMethodCode(service *Service, method *Method) (string, error) {
 	code := "\treturn func(req ripo.Request) (*ripo.Response, error) {\n"
 	code += fmt.Sprintf("grpcReq := &%v{}\n", method.RequestName)
 	for _, param := range method.RequestParams {
-		callCode := ""
-		varName := "value" // isolated in a block
-		varNameNil := "valueNil"
-		valueExpr := "*" + varName
-		typ := param.Type
-		declareValueCode := ""
-		prepareValueCode := ""
-		switch typ {
-		case t_string:
-			callCode = "req.GetString(%#v)"
-		case t_int:
-			callCode = "req.GetInt(%#v)"
-		case t_int64:
-			callCode = "req.GetInt(%#v)"
-			valueExpr = fmt.Sprintf("int64(*%v)", varName)
-		case t_int32:
-			callCode = "req.GetInt(%#v)"
-			valueExpr = fmt.Sprintf("int32(*%v)", varName)
-		case t_float64:
-			callCode = "req.GetFloat(%#v)"
-		case t_float32:
-			callCode = "req.GetFloat(%#v)"
-			valueExpr = fmt.Sprintf("float32(*%v)", varName)
-		case t_bool:
-			callCode = "req.GetBool(%#v)"
-		case t_stringSlice:
-			callCode = "req.GetStringList(%#v)"
-			valueExpr = varName
-		default:
-			typeParts := typ.Split()
-			if typ.HasPrefix("*google_protobuf") {
-				if len(typeParts) < 2 {
-					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
-				}
-				typeName := typeParts[1]
-				switch typeName {
-				case "Timestamp":
-					callCode = "req.GetTime(%#v)"
-					prepareValueCode = fmt.Sprintf(
-						`%vProto, err := ptypes.TimestampProto(*%v)
-						if err != nil {
-							return nil, ripo.NewError(ripo.Internal, "", err)
-						}`,
-						varName, varName,
-					)
-					valueExpr = varName + "Proto"
-				case "Duration":
-					callCode = "req.GetString(%#v)"
-					prepareValueCode = fmt.Sprintf(
-						`%vGo, err := time.ParseDuration(*%v)
-						if err != nil {return nil, ripo.NewError(ripo.InvalidArgument, "invalid '%v', must be a valid duration string", err)}
-						%vProto := ptypes.DurationProto(%vGo)`,
-						varName, varName, param.JsonKey, varName, varName,
-					)
-					valueExpr = varName + "Proto"
-					service.AdaptorImports["time"] = [2]string{"", "time"}
-				default:
-					return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
-				}
-				service.AdaptorImports["ptypes"] = [2]string{"", "github.com/golang/protobuf/ptypes"}
-			} else {
-				if len(typeParts) > 1 {
-					pkgName := strings.TrimLeftFunc(typeParts[0], func(r rune) bool {
-						switch r {
-						case '*', '[', ']':
-							return true
-						}
-						return false
-					})
-					pkgImp, ok := service.Imports[pkgName]
-					if ok {
-						exImp, exists := service.AdaptorImports[pkgName]
-						if exists {
-							// should be the same
-							if exImp[0] != pkgImp[0] || exImp[1] != pkgImp[1] {
-								log.Printf("Found 2 imports for package %v: %v and %v", pkgName, exImp, pkgImp)
-							}
-						} else {
-							service.AdaptorImports[pkgName] = pkgImp
-						}
-					}
-				}
-				declareValueCode = fmt.Sprintf("\t\tvar %v %v", varNameNil, typ)
-				typeExpr := fmt.Sprintf("reflect.TypeOf(%v)", varNameNil) // correct?
-				callCode = "req.GetObject(%#v, " + typeExpr + ")"
-				valueExpr = varName + ".(" + string(typ) + ")"
-				// if strings.HasPrefix(typ, "[]")
-				// if strings.HasPrefix(typ, "*")
-				service.AdaptorImports["reflect"] = [2]string{"", "reflect"}
-			}
+		paramCode, err := generateParamSetterCode(service, param)
+		if err != nil {
+			return "", err
 		}
-		if callCode == "" {
-			return "", fmt.Errorf("unrecognized type %v for param %#v", typ, param.Name)
-		}
-		callCode = fmt.Sprintf(callCode, param.JsonKey)
-
-		// TODO: fix varName to make sure it's a valid var name
-		code += fmt.Sprintf("\t\t{ // %v:\n", param.JsonKey)
-		if declareValueCode != "" {
-			code += declareValueCode + "\n"
-		}
-		code += fmt.Sprintf("\t\t%v, err := %v\n", varName, callCode)
-		code += "\t\t\tif err != nil {return nil, err}\n"
-		zeroValue := ZeroValueByType(typ)
-		if zeroValue == "" {
-			code += fmt.Sprintf("if %v != nil {", varName)
-		} else {
-			code += fmt.Sprintf("if %v != nil && *%v != %v {", varName, varName, zeroValue)
-		}
-		if prepareValueCode != "" {
-			code += "\t" + prepareValueCode + "\n"
-		}
-		code += fmt.Sprintf("\t\tgrpcReq.%v = %v\n", param.Name, valueExpr)
-		code += "\t}\n"
-		code += "\t\t}\n"
+		code += paramCode + "\n"
 	}
 	code += "\t\tctx, err := GontextFromRest(req)\n"
 	code += "\t\tif err != nil { return nil, err }\n"
