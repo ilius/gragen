@@ -20,4 +20,6 @@ go build "$GRAGEN" || exit $?
 
 
 ./gragen customtype.pb.go || exit $?
-go build
+
+go build -o server.bin ./server || exit $?
+chmod a+x server.bin
