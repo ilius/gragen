@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package testoptions;
+
+import "google/api/annotations.proto";
+
+service testoptions {
+	rpc AskName(AskNameRequest) returns (AskNameResponse) {
+		option (google.api.http) = {
+			get: "/name"
+		};
+	}
+	rpc SayHello(HelloRequest) returns (HelloResponse) {
+		option (google.api.http) = {
+			post: "/hello"
+		};
+	}
+	rpc PostCard(PostCardRequest) returns (PostCardResponse) {
+		option (google.api.http) = {
+			post: "/card"
+		};
+	}
+}
+
+message AskNameRequest {
+	string message = 1;
+}
+
+message AskNameResponse{
+	string name = 1;
+}
+
+message HelloRequest {
+	string message = 1;
+}
+
+message HelloResponse {
+	string message = 1;
+}
+
+message Card {
+	string message = 1;
+	string messageBack = 2;
+	string url = 3;
+	string urlBack = 4;
+}
+
+message PostCardRequest {
+	Card card = 1;
+}
+
+message PostCardResponse {
+	string refId = 1;
+	string refUrl = 2;
+}
