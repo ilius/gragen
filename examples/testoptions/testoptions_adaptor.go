@@ -156,9 +156,9 @@ func NewRest_PostCard(client TestoptionsClient) ripo.Handler {
 }
 
 func RegisterRestHandlers(client TestoptionsClient, router *httprouter.Router) {
-	handleRest(router, "GET", "/askname", NewRest_AskName(client))
-	handleRest(router, "GET", "/sayhello", NewRest_SayHello(client))
-	handleRest(router, "POST", "/postcard", NewRest_PostCard(client))
+	handleRest(router, "GET", "/name", NewRest_AskName(client))
+	handleRest(router, "POST", "/hello", NewRest_SayHello(client))
+	handleRest(router, "POST", "/card", NewRest_PostCard(client))
 }
 
 type testoptionsClientByServerImp struct {

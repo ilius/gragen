@@ -263,12 +263,10 @@ func getServerMethods(fileScope *ast.Scope, serverObj *ast.Object) ([]*Method, e
 	return methods, nil
 }
 
-func parsePbGoFile(pbGoPath string) (*Service, error) {
-	dirPath, filename := filepath.Split(pbGoPath)
-	if !strings.HasSuffix(filename, ".pb.go") {
-		return nil, fmt.Errorf("filename must end with .pb.go")
-	}
-	pkgName := filename[:len(filename)-len(".pb.go")]
+func parsePbGoFile(basePath string) (*Service, error) {
+	pbGoPath := basePath + ".pb.go"
+	dirPath, baseFilename := filepath.Split(basePath)
+	pkgName := baseFilename
 
 	srcBytes, err := ioutil.ReadFile(pbGoPath)
 	if err != nil {
@@ -311,6 +309,10 @@ func parsePbGoFile(pbGoPath string) (*Service, error) {
 		Methods:    methods,
 		DirPath:    dirPath,
 		Imports:    imports,
+	}
+	service.MethodByName = map[string]*Method{}
+	for _, method := range methods {
+		service.MethodByName[method.Name] = method
 	}
 
 	return service, nil

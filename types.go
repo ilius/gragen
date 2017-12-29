@@ -16,11 +16,12 @@ func (typ TypeRepr) HasPrefix(prefix string) bool {
 }
 
 type Service struct {
-	Name       string // starts with lowercase
-	ServerName string // name of grpc server interface
-	ClientName string // name of grpc client interface
-	Methods    []*Method
-	DirPath    string
+	Name         string // starts with lowercase
+	ServerName   string // name of grpc server interface
+	ClientName   string // name of grpc client interface
+	Methods      []*Method
+	MethodByName map[string]*Method
+	DirPath      string
 
 	// the following 2 maps: map[namespace] -> {alias, import_path}
 	// alias can be empty, and is usually empty
@@ -40,6 +41,7 @@ type Method struct {
 	RequestName   string
 	RequestParams []Param
 	ResponseName  string
+	Options       map[string]map[string]string
 
 	// StreamRequest  bool
 	// StreamResponse bool

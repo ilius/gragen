@@ -181,6 +181,16 @@ func generateServiceCode(service *Service) (string, error) {
 		if methodHasAnyNonBasicTypeParam(method) {
 			httpMethod = "POST"
 		}
+		restOptions, ok := method.Options["(google.api.http)"]
+		if ok {
+			for _, key := range []string{"get", "post", "put", "delete"} {
+				optPattern, hasKey := restOptions[key]
+				if hasKey {
+					httpMethod = strings.ToUpper(key)
+					pattern = strings.TrimLeft(optPattern, "/")
+				}
+			}
+		}
 		code += fmt.Sprintf(`handleRest(router, "%v", %#v, NewRest_%v(client))`,
 			httpMethod,
 			"/"+pattern,
